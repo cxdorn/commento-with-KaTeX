@@ -97,7 +97,7 @@
   var anonymousOnly = false;
   var popupBoxType = "login";
   var oauthButtonsShown = false;
-  var sortPolicy = "score-desc";
+  var sortPolicy = "creationdate-desc";
   var selfHex = undefined;
   var mobileView = null;
   var locale = navigator && navigator.language;
@@ -108,6 +108,9 @@
     "creationdate-desc": "",
     "creationdate-asc": "",
   };
+
+  //CXD: check whether katex in-element-rendering available
+  var katex_math_enabled = (typeof renderMathInElement != undefined);
 
   function $(id) {
     return document.getElementById(id);
@@ -164,7 +167,7 @@
     if (attr === undefined) {
       return undefined;
     }
-    
+
     return attr.value;
   }
 
@@ -447,7 +450,6 @@
 
     attrSet(a, "href", "https://github.com/souramoo/commentoplusplus");
     attrSet(a, "target", "_blank");
-    attrSet(a, "rel", "noreferrer");
 
     text.innerText = "Commento++";
 
@@ -537,10 +539,14 @@
       if(!critical) {
         append($(ID_NOTICE_CONTAINER), messageEl);
         setTimeout(function(){
-          messageEl.remove(); 
-        }, 5000)
+          messageEl.remove();
+        }, 8000)
       } else {
-        append($(ID_ROOT), messageEl);
+        // CXD: Better to also show critical messages on top?
+        attrSet(el, "style", "animation: none;");
+        append($(ID_NOTICE_CONTAINER), messageEl);
+        // OLD:
+        //append($(ID_ROOT), messageEl);
       }
     }
   }
@@ -577,6 +583,20 @@
     var textareaSuperContainer = $(ID_SUPER_CONTAINER + id);
     var markdownButton = $(ID_MARKDOWN_BUTTON + id);
     var markdownHelp = create("table");
+
+    // CXD: Privacy and Math help
+    var privacyContainer = create("tr");
+    var privacyLeft = create("td");
+    var privacyRight = create("td");
+    var inlinemathContainer = create("tr");
+    var inlinemathLeft = create("td");
+    inlinemathLeft.id = 'inline-katex';
+    var inlinemathRight = create("td");
+    var displaymathContainer = create("tr");
+    var displaymathLeft = create("td");
+    displaymathLeft.id = 'display-katex';
+    var displaymathRight = create("td");
+
     var italicsContainer = create("tr");
     var italicsLeft = create("td");
     var italicsRight = create("td");
@@ -600,6 +620,15 @@
 
     classAdd(markdownHelp, "markdown-help");
 
+    // CXD: more help
+    privacyLeft.innerHTML = i18n("General");
+    privacyRight.innerHTML = i18n("To post log in, enter your name, or post anonymously. </br>" +
+              "<i>Note that that the <b>editing</b> functionality is only available with login!</i>");
+    inlinemathLeft.innerHTML = i18n("inline \\(\\KaTeX\\)");
+    inlinemathRight.innerHTML = i18n("surround text with <pre>&#92;&#92;( two slashes and brackets &#92;&#92;)</pre>");
+    displaymathLeft.innerHTML = i18n("display \\(\\KaTeX\\)");
+    displaymathRight.innerHTML = i18n("surround text with <pre>$$ double dollar signs $$</pre>");
+
     boldLeft.innerHTML = i18n("<b>bold</b>");
     boldRight.innerHTML = i18n("surround text with <pre>**two asterisks**</pre>");
     italicsLeft.innerHTML = i18n("<i>italics</i>");
@@ -615,6 +644,17 @@
 
     markdownButton = removeAllEventListeners(markdownButton);
     onclick(markdownButton, markdownHelpHide, id);
+
+    // CXD: more help
+    append(privacyContainer, privacyLeft);
+    append(privacyContainer, privacyRight);
+    append(markdownHelp, privacyContainer);
+    append(inlinemathContainer, inlinemathLeft);
+    append(inlinemathContainer, inlinemathRight);
+    append(markdownHelp, inlinemathContainer);
+    append(displaymathContainer, displaymathLeft);
+    append(displaymathContainer, displaymathRight);
+    append(markdownHelp, displaymathContainer);
 
     append(italicsContainer, italicsLeft);
     append(italicsContainer, italicsRight);
@@ -635,6 +675,12 @@
     append(quoteContainer, quoteRight);
     append(markdownHelp, quoteContainer);
     append(textareaSuperContainer, markdownHelp);
+
+    // CXD
+    if (katex_math_enabled) {
+      renderMathInElement(document.getElementById('inline-katex'));
+      renderMathInElement(document.getElementById('display-katex'));
+    }
   }
 
 
@@ -713,7 +759,8 @@
     } else {
       submitButton.innerText = i18n("Add Comment");
     }
-    markdownButton.innerHTML = i18n("<b>M &#8595;</b> &nbsp; Markdown Help?");
+    // CXD: let's add math help.
+    markdownButton.innerHTML = i18n("&#8594; Math and Comment Help?");
 
     if (anonymousOnly) {
       anonymousCheckbox.checked = true;
@@ -768,6 +815,10 @@
 
     if (cards) {
       diffAppend(commentsArea, cards);
+    }
+
+    if (katex_math_enabled) {
+      renderMathInElement(commentsArea);
     }
 
     classAdd($(ID_SORT_POLICY + policy), "sort-policy-button-selected");
@@ -917,12 +968,12 @@
       if(message !== "") {
         errorShow(message);
       }
-      
+
       var commenterHex = selfHex;
       if (commenterHex === undefined || commenterToken === "anonymous") {
         commenterHex = "anonymous";
       }
-      
+
       if (commenterHex === "anonymous" && !$(ID_ANONYMOUS_CHECKBOX + id).checked && $(ID_GUEST_DETAILS_INPUT + id) && $(ID_GUEST_DETAILS_INPUT + id).value.trim().length > 0) {
         commenterHex = id;
         commenters[id] = { provider: "anon", name: anonName, photo: "undefined", link: "" };
@@ -964,7 +1015,7 @@
         textarea.value = "";
       }
 
-      commentsRender()
+      commentsRender();
       var y = $(ID_CARD + resp.commentHex).getBoundingClientRect().top + window.pageYOffset - 40;
       window.scrollTo({top: y, behavior: "smooth"});
       // window.location.hash = ID_CARD + resp.commentHex;
@@ -1135,7 +1186,7 @@
       permalink.href = "#commento-" + comment.commentHex;
       permalink.innerText = i18n("permalink");
       permalink.onclick = function() {
-        window.location.hash = "#commento-" + comment.commentHex; loadHash(); commentsRender(); 
+        window.location.hash = "#commento-" + comment.commentHex; loadHash(); commentsRender();
       }
 
       collapse.title = i18n("Collapse children");
@@ -1176,7 +1227,7 @@
         } else {
           avatar.innerHTML = commenter.name[0].toUpperCase();
           if(commenter.name === "[deleted]") {
-            avatar.innerHTML = "?";
+            avatar.innerHTML = "[deleted]";
           }
         }
 
@@ -1289,7 +1340,7 @@
       if (isModerator && comment.state !== "approved") {
         append(options, approve);
       }
-      
+
       if (!comment.deleted && (!isModerator && stickyCommentHex === comment.commentHex)) {
         append(options, sticky);
       }
@@ -1383,10 +1434,20 @@
       } else {
         errorHide();
       }
+      // CXD: The old code removed all children....
+      // Why not just update comments, and re-render?
+      var comment_number = comments.findIndex((comments_el) => comments_el['commentHex'] == commentHex);
+      comments[comment_number]['commenterHex'] = "anonymous";
+      comments[comment_number]['html'] = "[deleted]";
+      comments[comment_number]['deleted'] = true;
+      commentsMap = parentMap(comments);
+      commentsRender();
+      // ALTERNATIVE : commentsGet(commentsRender);
+      // OLD CODE:
+      // var card = $(ID_CARD + commentHex);
+      // card.parentNode.removeChild(card)
+      // delete commentsMap[commentHex]
 
-      var card = $(ID_CARD + commentHex);
-      card.parentNode.removeChild(card)
-      delete commentsMap[commentHex]
     });
   }
 
@@ -1501,16 +1562,28 @@
         errorHide();
       }
 
-      parentMap(comments)
-      commentsMap[id].markdown = markdown;
-      commentsMap[id].html = resp.html;
+      //CXD: why's the comments array not updated?? Here it is
+      var comment_number = comments.findIndex((comments_el) => comments_el['commentHex'] == id);
+      comments[comment_number]['markdown'] = markdown;
+      comments[comment_number]['html'] = resp.html;
+      // CXD: this was calling parentMap without an assignment.
+      commentsMap = parentMap(comments);
+      // CXD: Why was this here? this shouln't be a thing
+      // commentsMap[id].markdown = markdown;
+      // commentsMap[id].html = resp.html;
 
       var editButton = $(ID_EDIT + id);
       var textarea = $(ID_SUPER_CONTAINER + id);
 
-      textarea.innerHTML = commentsMap[id].html;
+      // CXD: commentsMap[id].html should not be a thing...
+      textarea.innerHTML = resp.html;
       textarea.id = ID_TEXT + id;
       delete shownEdit[id];
+
+      // CXD: re-render after edit
+      if (katex_math_enabled) {
+        renderMathInElement(textarea);
+      }
 
       justAdded[id] = true;
 
@@ -1546,8 +1619,11 @@
     if(!noAdd) {
       text.replaceWith(textareaCreate(id, true));
       var textarea = $(ID_TEXTAREA + id);
-      parentMap(comments)
-      textarea.value = commentsMap[id].markdown;
+      // CXD: Why call parents map here??
+      // parentMap(comments); // earlier calls where commentsMap = parentMap(comments) ... this seems bad...
+      // textarea.value = commentsMap[id].markdown;
+      var comment_number = comments.findIndex((comments_el) => comments_el['commentHex'] == id);
+      textarea.value = comments[comment_number]['markdown'];
     }
 
     var editButton = $(ID_EDIT + id);
@@ -1566,9 +1642,17 @@
     var editButton = $(ID_EDIT + id);
     var textarea = $(ID_SUPER_CONTAINER + id);
 
-    textarea.innerHTML = commentsMap[id].html;
+    //CXD: some problem as earlier...
+    // replaced the weird textarea.innerHTML = commentsMap[id].html; assignment
+    var comment_number = comments.findIndex((comments_el) => comments_el['commentHex'] == id);
+    textarea.innerHTML = comments[comment_number]['html'];
     textarea.id = ID_TEXT + id;
     delete shownEdit[id];
+
+    //CXD: re-render after (cancelled) edit
+    if (katex_math_enabled) {
+      renderMathInElement(textarea);
+    }
 
     classAdd(editButton, "option-edit");
     classRemove(editButton, "option-cancel");
@@ -1675,16 +1759,36 @@
       comment.creationDate = new Date(comment.creationDate);
 
       m[parentHex].push(comment);
-      commentsMap[comment.commentHex] = {
-        "html": comment.html,
-        "markdown": comment.markdown,
-        "index": index
-      };
+      // CXD: What was this doing here?
+      //commentsMap[comment.commentHex] = {
+      //  "html": comment.html,
+      //  "markdown": comment.markdown,
+      //  "index": index
+      //};
     });
 
     return m;
   }
 
+  // CXD: Added this function just for fun to better understand morphdom
+  function array_of_children(elem) {
+    var arr_ch = {};
+    var elem_name = elem.localName ? elem.localName : "undefined";
+    if(elem.children.length) {
+        var sub_ch = new Array(elem.children.length);
+        for (let i = 0; i < elem.children.length; i++) {
+            sub_ch[i] = array_of_children(elem.children[i]);
+        }
+        arr_ch[elem_name] = sub_ch;
+        arr_ch["id"] = elem.id;
+
+    } else {
+        arr_ch[elem_name] = "no children";
+        arr_ch["id"] = elem.id;
+
+    }
+    return arr_ch;
+  }
 
   function commentsRender() {
     var commentsArea = $(ID_COMMENTS_AREA);
@@ -1692,6 +1796,10 @@
 
     if (cards) {
       diffAppend(commentsArea, cards);
+    }
+    //CXD: re-render after comment submit and shown
+    if (katex_math_enabled) {
+      renderMathInElement(commentsArea);
     }
   }
 
@@ -1701,7 +1809,10 @@
     }
     morphdom(originalHost.children[0], newCards, {
       onBeforeNodeDiscarded: function(n) {
-        if(n.innerHTML.indexOf("textarea") > -1) {
+        // CXD: due to katex rendering we might have to discard children that do not have innerHTML
+        // since the if clause simply checks for textareas in the inner HTML we only additionally check
+        // whether innerHTML is defined.
+        if(typeof n.innerHTML != "undefined" && n.innerHTML.indexOf("textarea") > -1) {
           return false;
         }
         return true;
@@ -2097,7 +2208,7 @@
   global.passwordAsk = function(id) {
     var loginBox = $(ID_LOGIN_BOX);
     var subtitle = $(ID_LOGIN_BOX_EMAIL_SUBTITLE);
-    
+
     remove($(ID_LOGIN_BOX_EMAIL_BUTTON));
     remove($(ID_LOGIN_BOX_LOGIN_LINK_CONTAINER));
     remove($(ID_LOGIN_BOX_FORGOT_LINK_CONTAINER));
@@ -2329,7 +2440,7 @@
     global.popupRender(id);
 
     classAdd(mainArea, "blurred");
-    
+
     attrSet(loginBoxContainer, "style", "");
 
     // window.location.hash = ID_LOGIN_BOX_CONTAINER;
@@ -2456,7 +2567,6 @@
   global.reInit = function(options) {
     pageId = options.pageId || pageId;
     ID_ROOT = options.idRoot || ID_ROOT;
-    root = $(ID_ROOT);
     noFonts = options.noFonts || noFonts;
     hideDeleted = options.hideDeleted || hideDeleted;
     cssOverride = options.cssOverride || cssOverride;
@@ -2516,7 +2626,7 @@
     if (initted) {
       return;
     }
-    
+
     dataTagsLoad();
 
     if(!noLive) {
