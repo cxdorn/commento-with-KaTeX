@@ -6,7 +6,7 @@ A fork of [Commento++](https://github.com/souramoo/commentoplusplus), with added
 
 ### Bugfixes
 
-Besides KaTeX support, a few further bugs have been fixed.
+Besides KaTeX support, a few further bugs have been fixed (at the time of forking).
 
 - Editing a comment, collapsing the comments, and opening it again, wrongly deleted the edits.
 - Editing the comment, saving the comment, editing it again, then canceling the second edit, led to the first edit wrongly being reversed.
