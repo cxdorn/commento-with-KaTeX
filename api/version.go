@@ -1,11 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"net/url"
+	"strings"
 	"time"
 )
 
@@ -21,13 +20,7 @@ func versionCheckStart() error {
 		latestSeen := ""
 
 		for {
-			time.Sleep(5 * time.Minute)
-
-			data := url.Values{
-				"version": {version},
-			}
-
-			resp, err := http.Post("https://version.commento.io/api/check", "application/x-www-form-urlencoded", bytes.NewBufferString(data.Encode()))
+			resp, err := http.Get("https://api.github.com/repos/souramoo/commentoplusplus/releases/latest")
 			if err != nil {
 				errorCount++
 				// print the error only once; we don't want to spam the logs with this
@@ -51,30 +44,21 @@ func versionCheckStart() error {
 			}
 
 			type response struct {
-				Success   bool   `json:"success"`
-				Message   string `json:"message"`
-				Latest    string `json:"latest"`
-				NewUpdate bool   `json:"newUpdate"`
+				Latest string `json:"tag_name"`
 			}
 
 			r := response{}
 			json.Unmarshal(body, &r)
-			if r.Success == false {
-				errorCount++
-				if !printedError && errorCount > 5 {
-					logger.Errorf("error checking version: %s", r.Message)
-					printedError = true
-				}
-				continue
-			}
 
-			if r.NewUpdate && r.Latest != latestSeen {
+			if !strings.HasPrefix(version, r.Latest) && r.Latest != latestSeen {
 				logger.Infof("New update available! Latest version: %s", r.Latest)
 				latestSeen = r.Latest
 			}
 
 			errorCount = 0
 			printedError = false
+
+			time.Sleep(5 * time.Minute)
 		}
 	}()
 

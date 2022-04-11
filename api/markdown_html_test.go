@@ -16,15 +16,15 @@ func TestMarkdownToHtmlBasics(t *testing.T) {
 
 		"XSS: <script src='http://example.com/script.js'></script> Foo": "<p>XSS:  Foo</p>",
 
-		"Regular [Link](http://example.com)": "<p>Regular <a href=\"http://example.com\" rel=\"nofollow\">Link</a></p>",
+		"Regular [Link](http://example.com)": "<p>Regular <a href=\"http://example.com\" rel=\"nofollow noopener\" target=\"_blank\">Link</a></p>",
 
-		"XSS [Link](data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pgo=)": "<p>XSS <tt>Link</tt></p>",
+		"XSS [Link](data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pgo=)": "<p>XSS Link</p>",
 
 		"![Images disallowed](http://example.com/image.jpg)": "<p></p>",
 
 		"**bold** *italics*": "<p><strong>bold</strong> <em>italics</em></p>",
 
-		"http://example.com/autolink": "<p><a href=\"http://example.com/autolink\" rel=\"nofollow\">http://example.com/autolink</a></p>",
+		"http://example.com/autolink": "<p><a href=\"http://example.com/autolink\" rel=\"nofollow noopener\" target=\"_blank\">http://example.com/autolink</a></p>",
 
 		"<b>not bold</b>": "<p>not bold</p>",
 	}
